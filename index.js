@@ -31,7 +31,6 @@ const setList = [
     nomeMusica: "For Whom The Bell Tolls",
     artista: "Metallica",
     duracao: 309,
-    ordem: 1,
     album: "Ride The Lightning",
     ano: 1984,
     afinacao: "Afinacao Padrao"
@@ -41,7 +40,6 @@ const setList = [
     nomeMusica: "Enter Sandman",
     artista: "Metallica",
     duracao: 331,
-    ordem: 2,
     album: "Metallica",
     ano: 1991,
     afinacao: "Afinacao Padrao"
@@ -51,7 +49,6 @@ const setList = [
   nomeMusica: "One",
   artista: "Metallica",
   duracao: 444,
-  ordem: 3,
   album: "...And Justice For All",
   ano: 1988,
   afinacao: "Afinacao Padrao"
@@ -93,7 +90,6 @@ app.post('/musicas', (req, res) => {
     nomeMusica: req.body.nomeMusica,
     artista: req.body.artista,
     duracao: req.body.duracao,
-    ordem: req.body.ordem,
     album: req.body.album,
     ano: req.body.ano,
     afinacao: req.body.afinacao
@@ -116,9 +112,8 @@ app.patch("/musicas/:id", (req, res) => {
   }
 
   if (!Object.hasOwn(req.body, 'nomeMusica') && !Object.hasOwn(req.body, 'artista') &&
-      !Object.hasOwn(req.body, 'duracao') && !Object.hasOwn(req.body, 'ordem') &&
-      !Object.hasOwn(req.body, 'album') && !Object.hasOwn(req.body, 'ano') &&
-      !Object.hasOwn(req.body, 'afinacao')) {
+      !Object.hasOwn(req.body, 'duracao') && !Object.hasOwn(req.body, 'album') && 
+      !Object.hasOwn(req.body, 'ano') && !Object.hasOwn(req.body, 'afinacao')) {
         return res.status(400).json({
           message: `Informe ao menos um campo para atualizar: nomeMusica, artista, duracao, ordem, album, ano, afinacao`
         })
@@ -128,4 +123,42 @@ app.patch("/musicas/:id", (req, res) => {
     musica.nomeMusica = req.body.nomeMusica;
   }
 
+  if (!Object.hasOwn(req.body, 'artista')) {
+    musica.artista = req.body.artista;
+  }
+
+  if (!Object.hasOwn(req.body, 'duracao')) {
+    musica.duracao = req.body.duracao;
+  }
+
+  if (!Object.hasOwn(req.body, 'album')) {
+    musica.album = req.body.album;
+  }
+
+  if (!Object.hasOwn(req.body, 'ano')) {
+    musica.ano = req.body.ano;
+  }
+
+  if (!Object.hasOwn(req.body, 'afinacao')) {
+    musica.afinacao = req.body.afinacao;
+  }
+
+  return res.status(200).json({
+    message: `Música atualizada com sucesso.`,
+    data: musica
+  })
 })
+
+app.delete("/musicas/:id", (req, res) => {
+  const indiceMusica = setList.findIndex(musica => musica.codigo == req.params.id)
+  if (!indiceMusica || inidiceMusica === -1) {
+    return res.status(404).json({
+      message: `Música de ID ${req.params.id} não foi encontrada. Deleção não concluída.`
+    })
+  }
+
+  setList.splice(indiceMusica, 1)
+
+  return res.status(204).send()
+})
+
