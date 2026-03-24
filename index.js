@@ -45,17 +45,26 @@ const setList = [
     afinacao: "Afinacao Padrao"
   },
   {
-  codigo: 3,
-  nomeMusica: "One",
-  artista: "Metallica",
-  duracao: 444,
-  album: "...And Justice For All",
-  ano: 1988,
-  afinacao: "Afinacao Padrao"
-}
+    codigo: 3,
+    nomeMusica: "One",
+    artista: "Metallica",
+    duracao: 444,
+    album: "...And Justice For All",
+    ano: 1988,
+    afinacao: "Afinacao Padrao"
+  },
+  {
+    codigo: 4,
+    nomeMusica: "Bad Horsue",
+    artista: "Steve Vai",
+    duracao: 350,
+    album: "Alien Love Secrets",
+    ano: 1995,
+    afinacao: "Drop D"
+  }
 ];
 
-// Métodos --- Músicas da SetList
+// Métodos --- Músicas da SetList --- CRUD básico
 
 app.get('/musicas', (req, res) => {
   res.json([setList]);
@@ -65,7 +74,7 @@ app.get('/musicas/:id', (req, res) => {
   const musica = setList.find(musica => musica.codigo == req.params.id);
   if (!musica) {
     return res.status(404).json({
-      message: `Música de ID ${req.params} não foi encontrada.`
+      message: `Música de ID ${req.params.id} não foi encontrada.`
     })
   }
   return res.status(200).json([musica]);
@@ -107,7 +116,7 @@ app.patch("/musicas/:id", (req, res) => {
   const musica = setList.find(musica => musica.codigo == req.params.id);
   if (!musica) {
     return res.status(404).json({
-      message: `Música de ID ${req.params} não foi encontrada para atualização`
+      message: `Música de ID ${req.params.id} não foi encontrada para atualização`
     })
   }
 
@@ -119,27 +128,27 @@ app.patch("/musicas/:id", (req, res) => {
         })
   }
 
-  if (!Object.hasOwn(req.body, 'nomeMusica')) {
+  if (Object.hasOwn(req.body, 'nomeMusica')) {
     musica.nomeMusica = req.body.nomeMusica;
   }
 
-  if (!Object.hasOwn(req.body, 'artista')) {
+  if (Object.hasOwn(req.body, 'artista')) {
     musica.artista = req.body.artista;
   }
 
-  if (!Object.hasOwn(req.body, 'duracao')) {
+  if (Object.hasOwn(req.body, 'duracao')) {
     musica.duracao = req.body.duracao;
   }
 
-  if (!Object.hasOwn(req.body, 'album')) {
+  if (Object.hasOwn(req.body, 'album')) {
     musica.album = req.body.album;
   }
 
-  if (!Object.hasOwn(req.body, 'ano')) {
+  if (Object.hasOwn(req.body, 'ano')) {
     musica.ano = req.body.ano;
   }
 
-  if (!Object.hasOwn(req.body, 'afinacao')) {
+  if (Object.hasOwn(req.body, 'afinacao')) {
     musica.afinacao = req.body.afinacao;
   }
 
@@ -151,7 +160,7 @@ app.patch("/musicas/:id", (req, res) => {
 
 app.delete("/musicas/:id", (req, res) => {
   const indiceMusica = setList.findIndex(musica => musica.codigo == req.params.id)
-  if (!indiceMusica || inidiceMusica === -1) {
+  if (!indiceMusica || indiceMusica === -1) {
     return res.status(404).json({
       message: `Música de ID ${req.params.id} não foi encontrada. Deleção não concluída.`
     })
@@ -162,3 +171,60 @@ app.delete("/musicas/:id", (req, res) => {
   return res.status(204).send()
 })
 
+// Métodos gerais --- Pesquisas e afins
+
+app.get("/musicas/pesquisar/nome", (req, res) => {
+  const { nome } = req.query;
+  const musicasPorNome = setList.filter(musica =>
+    musica.nomeMusica.toLowerCase().includes(nome.toLowerCase())
+  );
+  if (musicasPorNome == '') {
+    return res.status(404).json({
+      message: `Nenhuma música foi encontrada. Tente novamente`
+    })
+  }
+
+  return res.status(200).json({
+    quantidade: musicasPorNome.length,
+    musicasPorNome
+  })
+})
+
+app.get("/musicas/pesquisar/artista", (req, res) => {
+  const { nome } = req.query;
+  const musicasPorArtista = setList.filter(musica =>
+    musica.artista.toLowerCase().includes(nome.toLowerCase())
+  );
+  if (musicasPorArtista == '') {
+    return res.status(404).json({
+      message: `Nenhuma música deste artista foi encontrada ou registrada.`
+    })
+  }
+
+  return res.status(200).json({
+    quantidade: musicasPorArtista.length,
+    musicasPorArtista
+  })
+})
+
+app.get("/musicas/pesquisar/duracao/:tipo", (req, res) => {
+  const tipo = req.params.tipo;
+
+  const musicasPorDuracao = setList.filter(musica => {
+    if (tipo === 'curta') return musica.duracao <= 280;
+    if (tipo === 'media') return musica.duracao > 280 && musica.duracao <= 330;
+    if (tipo === 'longa') return musica.duracao > 330;
+    return false
+  })
+
+  if (!musicasPorDuracao) {
+    return res.status(404).json({
+      message: `Duração inválida. Favor utilizar "curta", "media" ou "longa".`
+    })
+  }
+
+  return res.status(200).json({
+    quantidade: musicasPorDuracao.length,
+    musicasPorDuracao
+  })
+})
