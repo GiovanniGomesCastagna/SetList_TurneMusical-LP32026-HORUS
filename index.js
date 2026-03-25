@@ -6,7 +6,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.get('/', (req, res) => {
-  res.send('Hello World!')
+  res.send(`Bem vindo a SetList de Turnê Musical!`)
 })
 
 app.listen(port, () => {
@@ -67,7 +67,7 @@ const setList = [
 // Métodos --- Músicas da SetList --- CRUD básico
 
 app.get('/musicas', (req, res) => {
-  res.json([setList]);
+  res.json(setList);
 })
 
 app.get('/musicas/:id', (req, res) => {
@@ -77,13 +77,13 @@ app.get('/musicas/:id', (req, res) => {
       message: `Música de ID ${req.params.id} não foi encontrada.`
     })
   }
-  return res.status(200).json([musica]);
+  return res.status(200).json(musica);
 })
 
 app.post('/musicas', (req, res) => {
   if (!req.body.nomeMusica ||
     !req.body.artista ||
-    !req.body.duracao ||
+    req.body.duracao === undefined ||
     !req.body.afinacao
   ) {
     return res.status(400).json({
@@ -91,8 +91,22 @@ app.post('/musicas', (req, res) => {
     })
   }
 
+  if (typeof req.body.duracao !== 'number') {
+    return res.status(400).json({
+      message: "Campo 'duracao' deve ser um número."
+    })
+  }
+
+  if (typeof req.body.ano !== 'number' && typeof req.body.ano !== 'undefined') {
+    return res.status(400).json({
+      message: "Campo 'ano' deve ser um número."
+    })
+  }
+
   // geração de código automático
-  const codigo = Math.max(...setList.map(musica => musica.codigo)) + 1
+  const codigo = setList.length > 0
+    ? Math.max(...setList.map(musica => musica.codigo)) + 1
+    : 1;
 
   const novaMusica = {
     codigo: codigo,
@@ -137,6 +151,11 @@ app.patch("/musicas/:id", (req, res) => {
   }
 
   if (Object.hasOwn(req.body, 'duracao')) {
+    if (typeof req.body.duracao !== 'number') {
+      return res.status(400).json({
+        message: `Campo 'duracao' deve ser um número.`
+      });
+    }
     musica.duracao = req.body.duracao;
   }
 
@@ -145,9 +164,14 @@ app.patch("/musicas/:id", (req, res) => {
   }
 
   if (Object.hasOwn(req.body, 'ano')) {
+    if (typeof req.body.ano !== 'number') {
+      return res.status(400).json({
+        message: `Campo 'ano' deve ser um número.`
+      });
+    }
     musica.ano = req.body.ano;
   }
-
+  
   if (Object.hasOwn(req.body, 'afinacao')) {
     musica.afinacao = req.body.afinacao;
   }
@@ -160,7 +184,7 @@ app.patch("/musicas/:id", (req, res) => {
 
 app.delete("/musicas/:id", (req, res) => {
   const indiceMusica = setList.findIndex(musica => musica.codigo == req.params.id)
-  if (!indiceMusica || indiceMusica === -1) {
+  if (indiceMusica === -1) {
     return res.status(404).json({
       message: `Música de ID ${req.params.id} não foi encontrada. Deleção não concluída.`
     })
@@ -175,10 +199,17 @@ app.delete("/musicas/:id", (req, res) => {
 
 app.get("/musicas/pesquisar/nome", (req, res) => {
   const { nome } = req.query;
+
+  if (!nome) {
+    return res.status(400).json({ 
+      message: `Parâmetro 'nome' é obrigatório.`
+    })
+  }
+
   const musicasPorNome = setList.filter(musica =>
     musica.nomeMusica.toLowerCase().includes(nome.toLowerCase())
   );
-  if (musicasPorNome == '') {
+  if (musicasPorNome.length === 0) {
     return res.status(404).json({
       message: `Nenhuma música foi encontrada. Tente novamente`
     })
@@ -191,11 +222,18 @@ app.get("/musicas/pesquisar/nome", (req, res) => {
 })
 
 app.get("/musicas/pesquisar/artista", (req, res) => {
-  const { nome } = req.query;
+  const { artista } = req.query;
+
+  if (!artista) {
+    return res.status(400).json({ 
+      message: `Parâmetro 'artista' é obrigatório.`
+    })
+  }
+
   const musicasPorArtista = setList.filter(musica =>
-    musica.artista.toLowerCase().includes(nome.toLowerCase())
+    musica.artista.toLowerCase().includes(artista.toLowerCase())
   );
-  if (musicasPorArtista == '') {
+  if (musicasPorArtista.length === 0) {
     return res.status(404).json({
       message: `Nenhuma música deste artista foi encontrada ou registrada.`
     })
@@ -217,9 +255,15 @@ app.get("/musicas/pesquisar/duracao/:tipo", (req, res) => {
     return false
   })
 
-  if (!musicasPorDuracao) {
+  if (!['curta', 'media', 'longa'].includes(tipo)) {
+    return res.status(400).json({
+      message: `Duração inválida. Favor utilizar 'curta', 'media' ou 'longa'.`
+    })
+  }
+
+  if (musicasPorDuracao.length === 0) {
     return res.status(404).json({
-      message: `Duração inválida. Favor utilizar "curta", "media" ou "longa".`
+      message: `Nenhuma música encontrada para este tipo de duração.`
     })
   }
 
@@ -228,3 +272,86 @@ app.get("/musicas/pesquisar/duracao/:tipo", (req, res) => {
     musicasPorDuracao
   })
 })
+
+app.get("/musicas/pesquisar/album", (req, res) => {
+  const { album } = req.query;
+
+  if (!album) {
+    return res.status(400).json({ 
+      message: `Parâmetro 'album' é obrigatório.`
+    })
+  }
+
+  const musicasPorAlbum = setList.filter(musica =>
+    musica.album.toLowerCase().includes(album.toLowerCase())
+  );
+  if (musicasPorAlbum.length === 0) {
+    return res.status(404).json({
+      message: `Nenhuma música deste álbum foi encontrada ou registrada.`
+    })
+  }
+
+  return res.status(200).json({
+    quantidade: musicasPorAlbum.length,
+    musicasPorAlbum
+  })
+})
+
+app.get("/musicas/pesquisar/ano", (req, res) => {
+  const ano = Number(req.query.ano);
+
+  if (isNaN(ano)) {
+    return res.status(400).json({ 
+      message: `Ano inválido.`
+    })
+  }
+
+  const musicasPorAno = setList.filter(musica => musica.ano == ano);
+  
+  if (musicasPorAno.length === 0) {
+    return res.status(404).json({
+      message: `Nenhuma música deste ano foi encontrada ou registrada.`
+    })
+  }
+
+  return res.status(200).json({
+    quantidade: musicasPorAno.length,
+    musicasPorAno
+  })
+})
+
+app.get("/musicas/pesquisar/afinacao", (req, res) => {
+  const { afinacao } = req.query;
+
+  if (!afinacao) {
+    return res.status(400).json({ 
+      message: `Parâmetro 'afinacao' é obrigatório.`
+    })
+  }
+  const musicasPorAfinacao = setList.filter(musica =>
+    musica.afinacao.toLowerCase().includes(afinacao.toLowerCase())
+  );
+  if (musicasPorAfinacao.length === 0) {
+    return res.status(404).json({
+      message: `Nenhuma música nesta afinação foi encontrada ou registrada.`
+    })
+  }
+
+  return res.status(200).json({
+    quantidade: musicasPorAfinacao.length,
+    musicasPorAfinacao
+  })
+})
+
+app.use((req, res) => {
+  res.status(404).json({
+    message: "Rota não encontrada"
+  });
+});
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    message: "Erro interno do servidor"
+  });
+});
